@@ -10,8 +10,9 @@ class StaleCache {
     private static $cacheDuration;
 
     public static function get(string $key, array $times, callable $callback): string|false {
-        $times = array_map(fn($value) => absint($value), $times);
-        [static::$staleTime, static::$cacheDuration, static::$lockDuration] = $times + [2 => HOUR_IN_SECONDS];
+        $times = array_map('absint', $times);
+        $settings = $times + [2 => HOUR_IN_SECONDS];
+        [static::$staleTime, static::$cacheDuration, static::$lockDuration] = $settings;
 
         $data = get_transient($key);
 
