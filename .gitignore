@@ -1,3 +1,24 @@
+# IDE & Editor folders
 .idea/
-git@github.com:ryanhellyer/
+.vscode/
+*.swp
+*.swo
+.DS_Store
 
+# Logs
+/logs/
+*.log
+
+# Build/temp files/folders
+/temp/
+/tmp/
+temp.php
+
+# System files
+Thumbs.db
+.directory
+
+# Backup files
+*.bak
+*.backup
+*~
