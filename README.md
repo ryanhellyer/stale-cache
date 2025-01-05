@@ -12,10 +12,9 @@ A PHP implementation of the stale-while-revalidate caching pattern for WordPress
 
 ## Installation
 
-COMING SOON!
-\```bash
-composer require your-vendor/stale-cache
-\```
+```bash
+composer require ryanhellyer/stale-cache
+```
 
 ## Usage
 
