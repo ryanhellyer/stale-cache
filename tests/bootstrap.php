@@ -1,25 +1,30 @@
 <?php
+
 declare(strict_types=1);
 
 namespace {
     // Mock WP functionality.
-    function get_transient($key) {
+    function get_transient(string $key): mixed
+    {
         global $test;
         return $test->transients[$key] ?? false;
     }
 
-    function set_transient($key, $value, $expiration) {
+    function set_transient(string $key, mixed $value, int $expiration): bool
+    {
         global $test;
         $test->transients[$key] = $value;
         return true;
     }
 
-    function delete_transient($key) {
+    function delete_transient(string $key): void
+    {
         global $test;
         unset($test->transients[$key]);
     }
 
-    function absint($maybeint) {
+    function absint(int $maybeint): int
+    {
         return abs((int) $maybeint);
     }
 

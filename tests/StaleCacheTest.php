@@ -9,8 +9,8 @@ use RyanHellyer\StaleCache\StaleCache;
 
 class StaleCacheTest extends TestCase
 {
-    const TEST_KEY = 'test_key';
-    const TEST_DATA = 'test_data';
+    private const TEST_KEY = 'test_key';
+    private const TEST_DATA = 'test_data';
 
     protected function setUp(): void
     {
@@ -19,7 +19,7 @@ class StaleCacheTest extends TestCase
         $test->transients = [];
     }
 
-    public function testFreshCacheReturn()
+    public function testFreshCacheReturn(): void
     {
         global $test;
 
@@ -28,7 +28,7 @@ class StaleCacheTest extends TestCase
         $result = StaleCache::get(
             self::TEST_KEY,
             [5, 10],
-            function() {
+            function () {
                 sleep(1);
                 return self::TEST_DATA;
             }
@@ -37,7 +37,7 @@ class StaleCacheTest extends TestCase
         $this->assertEquals(self::TEST_DATA, $result);
     }
 
-    public function testStaleCacheReturn()
+    public function testStaleCacheReturn(): void
     {
         global $test;
 
@@ -48,7 +48,7 @@ class StaleCacheTest extends TestCase
         $result = StaleCache::get(
             self::TEST_KEY,
             [5, 10],
-            function() {
+            function () {
                 sleep(1);
                 return self::TEST_DATA;
             }
@@ -57,7 +57,7 @@ class StaleCacheTest extends TestCase
         $this->assertEquals(self::TEST_DATA, $result);
     }
 
-    public function testStaleCacheDoubleReturn()
+    public function testStaleCacheDoubleReturn(): void
     {
         global $test;
 
@@ -79,12 +79,12 @@ class StaleCacheTest extends TestCase
         }
     }
 
-    public function testExpiredCacheReturn()
+    public function testExpiredCacheReturn(): void
     {
         global $test;
 
         $test->transients[self::TEST_KEY] = self::TEST_DATA;
-        $test->transients[self::TEST_KEY . '_stale_time'] = time() -56;
+        $test->transients[self::TEST_KEY . '_stale_time'] = time() - 56;
         $test->transients[self::TEST_KEY . '_refresh_lock'] = time() - 1;
 
         for ($i = 0; $i < 2; $i++) {

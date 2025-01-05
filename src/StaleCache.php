@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace RyanHellyer\StaleCache;
 
-class StaleCache {
+class StaleCache
+{
     private const LOCK_SUFFIX = '_refresh_lock';
     private const STALE_SUFFIX = '_stale_time';
-    private static $lockDuration;
-    private static $staleTime;
-    private static $cacheDuration;
+    protected static int $lockDuration;
+    protected static int $staleTime;
+    protected static int $cacheDuration;
 
-    public static function get(string $key, array $times, callable $callback): string|false {
+    public static function get(string $key, array $times, callable $callback): mixed
+    {
         $times = array_map('absint', $times);
         $settings = $times + [2 => HOUR_IN_SECONDS];
         [static::$staleTime, static::$cacheDuration, static::$lockDuration] = $settings;
@@ -30,7 +32,8 @@ class StaleCache {
         return self::handleStaleCache($key, $data, $callback);
     }
 
-    private static function handleStaleCache(string $key, string $data, callable $callback): string {
+    private static function handleStaleCache(string $key, mixed $data, callable $callback): mixed
+    {
         $lockKey = $key . self::LOCK_SUFFIX;
 
         if (!get_transient($lockKey)) {
@@ -41,8 +44,9 @@ class StaleCache {
         return $data;
     }
 
-    private static function scheduleRefresh(string $key, callable $callback, string $lockKey): void {
-        add_action('shutdown', function() use ($key, $callback, $lockKey) {
+    private static function scheduleRefresh(string $key, callable $callback, string $lockKey): void
+    {
+        add_action('shutdown', function () use ($key, $callback, $lockKey) {
             if (function_exists('fastcgi_finish_request')) {
                 fastcgi_finish_request();
             }
@@ -52,9 +56,10 @@ class StaleCache {
         });
     }
 
-    private static function update(string $key, callable $callback): string|false {
+    private static function update(string $key, callable $callback): mixed
+    {
         try {
-            $data = $callback ? $callback() : false;
+            $data = $callback();
 
             if (!$data) {
                 return false;
