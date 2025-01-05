@@ -5,12 +5,12 @@ declare(strict_types=1);
 final class StaleCache {
     private const LOCK_SUFFIX = '_refresh_lock';
     private const STALE_SUFFIX = '_stale_time';
-    private const LOCK_DURATION = HOUR_IN_SECONDS;
+    private static $lockDuration;
     private static $staleTime;
     private static $cacheDuration;
 
     public static function get(string $key, array $times, callable $callback): string|false {
-        [static::$staleTime, static::$cacheDuration] = $times;
+        [static::$staleTime, static::$cacheDuration, static::$lockDuration] = $times + [2 => HOUR_IN_SECONDS];
 
         $data = get_transient($key);
 
@@ -30,7 +30,7 @@ final class StaleCache {
         $lockKey = $key . self::LOCK_SUFFIX;
 
         if (!get_transient($lockKey)) {
-            set_transient($lockKey, true, self::LOCK_DURATION);
+            set_transient($lockKey, true, static::$lockDuration);
             self::scheduleRefresh($key, $callback, $lockKey);
         }
 

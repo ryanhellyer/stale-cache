@@ -41,7 +41,7 @@ class StaleCacheTest extends TestCase
 }
 
 
-// Mock WP functionality.
+// Mock WP and PHP FPM functionality.
 function get_transient($key) {
     global $test;
     return $test->transients[$key] ?? false;
@@ -61,10 +61,6 @@ function delete_transient($key) {
 function add_action($hook, $callback) {
     global $test;
     $test->scheduledActions[$hook] = $callback;
-}
-
-function fastcgi_finish_request() {
-    return true;
 }
 
 define('HOUR_IN_SECONDS', 60 * 60);
