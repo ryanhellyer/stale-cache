@@ -8,6 +8,9 @@ use PHPUnit\Framework\TestCase;
 
 class StaleCacheTest extends TestCase
 {
+    const $testKey = 'test_key';
+    const $testData = 'test_data';
+
     protected function setUp(): void
     {
         global $test;
@@ -19,24 +22,22 @@ class StaleCacheTest extends TestCase
     {
         global $test;
 
-        $key = 'test_key';
-        $data = 'test_data';
         $times = [5, 10]; // 5 s stale, 10 s cache
 
         // Set up fresh cache.
-        $test->transients[$key] = $data;
-        $test->transients[$key . '_stale_time'] = time() + $times[0];
+        $test->transients[$this->testKey] = $this->testData;
+        $test->transients[$this->testKey . '_stale_time'] = time() + $times[0];
 
         $result = StaleCache::get(
-            $key,
+            $this->testKey,
             $times,
             function() use ($data) {
                 sleep(2);
-                return $data;
+                return $this->testData;
             }
         );
 
-        $this->assertEquals($data, $result);
+        $this->assertEquals($this->testData, $result);
     }
 }
 
