@@ -49,21 +49,44 @@ The cache can be in one of three states:
 1. **Fresh**: Content is served directly from cache
 2. **Stale**: Content is served from cache while a background refresh is triggered
 3. **Missing**: Content is generated synchronously and cached
-[composer.json](composer.json)
+
 ### Performance Considerations
 
 - Uses \`fastcgi_finish_request()\` when available for non-blocking updates
 - Implements locking to prevent cache stampede
 - Serves stale content rather than blocking on regeneration
 
-## Testing
+## Development
+
+### Code Style & Quality
+This project follows PSR-12 coding standards and uses several tools to maintain code quality:
+
+#### PHP CodeSniffer
+Check coding standards:
+```bash
+composer phpcs
+```
+
+Automatically fix coding standards violations:
+```bash
+composer phpcs-fix
+```
+
+#### PHPStan
+Run static analysis:
+```bash
+composer phpstan
+```
+
+The project uses PHPStan Level 8 (maximum) for strict type checking and analysis.
+
+### Testing
 
 Run the test suite:
 
-COMING SOON!
-\```bash
+```bash
 composer test
-\```
+```
 
 ## License
 
