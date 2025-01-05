@@ -1,0 +1,41 @@
+{
+    "name": "ryanhellyer/stale-cache",
+    "description": "A PHP implementation of the stale-while-revalidate caching pattern for WordPress",
+    "type": "library",
+    "require": {
+        "php": ">=8.2",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0",
+        "squizlabs/php_codesniffer": "^3.7",
+        "phpstan/phpstan": "^1.10"
+    },
+    "license": "GPL-2.0-or-later",
+    "autoload": {
+        "psr-4": {
+            "RyanHellyer\\StaleCache\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "RyanHellyer\\StaleCache\\Tests\\": "tests/"
+        },
+        "files": [
+            "tests/bootstrap.php"
+        ]
+    },
+    "authors": [
+        {
+            "name": "Ryan Hellyer",
+            "email": "ryanhellyer@gmail.com"
+        }
+    ],
+    "scripts": {
+        "test": "./vendor/bin/phpunit",
+        "phpcs": "./vendor/bin/phpcs src tests --standard=PSR12",
+        "phpcs-fix": "./vendor/bin/phpcbf src tests --standard=PSR12",
+        "phpstan": "./vendor/bin/phpstan analyse src tests --level=8"
+    },
+    "minimum-stability": "stable"
+}

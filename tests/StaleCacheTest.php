@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-require(dirname(__DIR__) . '/StaleCache.php');
+namespace RyanHellyer\StaleCache\Tests;
 
 use PHPUnit\Framework\TestCase;
+use RyanHellyer\StaleCache\StaleCache;
 
 class StaleCacheTest extends TestCase
 {
@@ -14,7 +15,7 @@ class StaleCacheTest extends TestCase
     protected function setUp(): void
     {
         global $test;
-        $test = new stdClass();
+        $test = new \stdClass();
         $test->transients = [];
     }
 
@@ -100,28 +101,3 @@ class StaleCacheTest extends TestCase
         }
     }
 }
-
-
-// Mock WP and PHP FPM functionality.
-function get_transient($key) {
-    global $test;
-    return $test->transients[$key] ?? false;
-}
-
-function set_transient($key, $value, $expiration) {
-    global $test;
-    $test->transients[$key] = $value;
-    return true;
-}
-
-function delete_transient($key) {
-    global $test;
-    unset($test->transients[$key]);
-}
-
-function add_action($hook, $callback) {
-    global $test;
-    $test->scheduledActions[$hook] = $callback;
-}
-
-define('HOUR_IN_SECONDS', 60 * 60);
