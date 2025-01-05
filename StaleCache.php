@@ -13,6 +13,7 @@ final class StaleCache {
         [static::$staleTime, static::$cacheDuration] = $times;
 
         $data = get_transient($key);
+
         if ($data === false) {
             return self::update($key, $callback);
         }

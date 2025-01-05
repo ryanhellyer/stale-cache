@@ -7,6 +7,8 @@ This is very loosely based on the new `Cache::flexible()` functionality in Larav
 `StaleCache::get('some-key', [5, 30], function() {return getSomethingExpensive();})`
 Where `5` is the cache stale time and 30 is the cache duration (in seconds).
 
+## Tests
+`phpunit tests/StaleCacheTest.php`
+
 ## Todo
 Make installable via composer.
-Complete unit test setup.
