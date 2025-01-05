@@ -19,7 +19,7 @@ final class StaleCache {
 
         $staleTime = get_transient($key . self::STALE_SUFFIX);
         if ($staleTime >= time()) {
-            return $data . '<br>Served via cache';
+            return $data;
         }
 
         return self::handleStaleCache($key, $data, $callback);
@@ -33,7 +33,7 @@ final class StaleCache {
             self::scheduleRefresh($key, $callback, $lockKey);
         }
 
-        return $data . '<br>Served as stale cache';
+        return $data;
     }
 
     private static function scheduleRefresh(string $key, callable $callback, string $lockKey): void {
