@@ -8,8 +8,8 @@ use PHPUnit\Framework\TestCase;
 
 class StaleCacheTest extends TestCase
 {
-    const $testKey = 'test_key';
-    const $testData = 'test_data';
+    const TEST_KEY = 'test_key';
+    const TEST_DATA = 'test_data';
 
     protected function setUp(): void
     {
@@ -22,22 +22,82 @@ class StaleCacheTest extends TestCase
     {
         global $test;
 
-        $times = [5, 10]; // 5 s stale, 10 s cache
-
-        // Set up fresh cache.
-        $test->transients[$this->testKey] = $this->testData;
-        $test->transients[$this->testKey . '_stale_time'] = time() + $times[0];
+        $test->transients = [];
 
         $result = StaleCache::get(
-            $this->testKey,
-            $times,
-            function() use ($data) {
-                sleep(2);
-                return $this->testData;
+            self::TEST_KEY,
+            [5, 10],
+            function() {
+                sleep(1);
+                return self::TEST_DATA;
             }
         );
 
-        $this->assertEquals($this->testData, $result);
+        $this->assertEquals(self::TEST_DATA, $result);
+    }
+
+    public function testStaleCacheReturn()
+    {
+        global $test;
+
+        $test->transients[self::TEST_KEY] = self::TEST_DATA;
+        $test->transients[self::TEST_KEY . '_stale_time'] = time() - 1;
+        $test->transients[self::TEST_KEY . '_refresh_lock'] = time() + HOUR_IN_SECONDS;
+
+        $result = StaleCache::get(
+            self::TEST_KEY,
+            [5, 10],
+            function() {
+                sleep(1);
+                return self::TEST_DATA;
+            }
+        );
+
+        $this->assertEquals(self::TEST_DATA, $result);
+    }
+
+    public function testStaleCacheDoubleReturn()
+    {
+        global $test;
+
+        $test->transients[self::TEST_KEY] = self::TEST_DATA;
+        $test->transients[self::TEST_KEY . '_stale_time'] = time() - 1;
+        $test->transients[self::TEST_KEY . '_refresh_lock'] = time() + HOUR_IN_SECONDS;
+
+        for ($i = 0; $i < 2; $i++) {
+            $result = StaleCache::get(
+                self::TEST_KEY,
+                [5, 10],
+                function () {
+                    sleep(1);
+                    return self::TEST_DATA;
+                }
+            );
+
+            $this->assertEquals(self::TEST_DATA, $result);
+        }
+    }
+
+    public function testExpiredCacheReturn()
+    {
+        global $test;
+
+        $test->transients[self::TEST_KEY] = self::TEST_DATA;
+        $test->transients[self::TEST_KEY . '_stale_time'] = time() -56;
+        $test->transients[self::TEST_KEY . '_refresh_lock'] = time() - 1;
+
+        for ($i = 0; $i < 2; $i++) {
+            $result = StaleCache::get(
+                self::TEST_KEY,
+                [5, 10, 60],
+                function () {
+                    sleep(1);
+                    return self::TEST_DATA;
+                }
+            );
+
+            $this->assertEquals(self::TEST_DATA, $result);
+        }
     }
 }
 
