@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-final class StaleCache {
+class StaleCache {
     private const LOCK_SUFFIX = '_refresh_lock';
     private const STALE_SUFFIX = '_stale_time';
     private static $lockDuration;
@@ -10,6 +10,7 @@ final class StaleCache {
     private static $cacheDuration;
 
     public static function get(string $key, array $times, callable $callback): string|false {
+        $times = array_map(fn($value) => absint($value), $times);
         [static::$staleTime, static::$cacheDuration, static::$lockDuration] = $times + [2 => HOUR_IN_SECONDS];
 
         $data = get_transient($key);
@@ -49,19 +50,24 @@ final class StaleCache {
     }
 
     private static function update(string $key, callable $callback): string|false {
-        $data = $callback ? $callback() : false;
+        try {
+            $data = $callback ? $callback() : false;
 
-        if (!$data) {
+            if (!$data) {
+                return false;
+            }
+
+            set_transient($key, $data, static::$cacheDuration);
+            set_transient(
+                $key . self::STALE_SUFFIX,
+                time() + static::$staleTime,
+                static::$cacheDuration
+            );
+
+            return $data;
+        } catch (\Throwable $e) {
+            error_log("StaleCache update failed for key {$key}: " . $e->getMessage());
             return false;
         }
-
-        set_transient($key, $data, static::$cacheDuration);
-        set_transient(
-            $key . self::STALE_SUFFIX,
-            time() + static::$staleTime,
-            static::$cacheDuration
-        );
-
-        return $data;
     }
 }
