@@ -20,7 +20,7 @@ composer require ryanhellyer/stale-cache
 
 Basic usage example:
 
-\```php
+```php
 $result = StaleCache::get(
     'my_cache_key',
     [
@@ -33,7 +33,7 @@ $result = StaleCache::get(
         return getExpensiveData();
     }
 );
-\```
+```
 
 ### Configuration Parameters
 
@@ -51,7 +51,7 @@ The cache can be in one of three states:
 
 ### Performance Considerations
 
-- Uses \`fastcgi_finish_request()\` when available for non-blocking updates
+- Uses `fastcgi_finish_request()` when available for non-blocking updates
 - Implements locking to prevent cache stampede
 - Serves stale content rather than blocking on regeneration
 
