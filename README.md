@@ -2,6 +2,8 @@
 
 A PHP implementation of the stale-while-revalidate caching pattern for WordPress, designed to improve performance and reduce load on expensive operations.
 
+Inspired by the recent implementation of `Cache::flexible()` in Laravel.
+
 ## Features
 
 - **Stale-While-Revalidate Pattern**: Serves stale content while asynchronously refreshing cache in the background
