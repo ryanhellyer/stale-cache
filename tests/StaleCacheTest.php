@@ -19,6 +19,14 @@ class StaleCacheTest extends TestCase
         $test->transients = [];
     }
 
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+
+        global $test;
+        $test = null;
+    }
+
     public function testFreshCacheReturn(): void
     {
         global $test;
