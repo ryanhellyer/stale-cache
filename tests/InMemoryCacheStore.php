@@ -22,6 +22,11 @@ class InMemoryCacheStore implements CacheStore
         return true;
     }
 
+    public function setForever(string $key, mixed $value): bool
+    {
+        return $this->set($key, $value, 0);
+    }
+
     public function delete(string $key): bool
     {
         unset($this->storage[$key]);
