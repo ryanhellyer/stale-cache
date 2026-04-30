@@ -8,73 +8,89 @@ class StaleCache
 {
     private const LOCK_SUFFIX = '_refresh_lock';
     private const STALE_SUFFIX = '_stale_time';
-    protected static int $lockDuration;
-    protected static int $staleTime;
-    protected static int $cacheDuration;
+    private string $key;
+    private int $staleTime;
+    private int $cacheDuration;
+    private int $lockDuration;
 
+    /**
+     * @param array<int> $times
+     */
     public static function get(string $key, array $times, callable $callback): mixed
+    {
+        return (new self($key, $times))->resolve($callback);
+    }
+
+    /**
+     * @param array<int> $times
+     */
+    private function __construct(string $key, array $times)
     {
         $times = array_map('absint', $times);
         $settings = $times + [2 => HOUR_IN_SECONDS];
-        [static::$staleTime, static::$cacheDuration, static::$lockDuration] = $settings;
+        [$this->staleTime, $this->cacheDuration, $this->lockDuration] = $settings;
+        $this->key = $key;
+    }
 
-        $data = get_transient($key);
+    private function resolve(callable $callback): mixed
+    {
+        $data = get_transient($this->key);
 
         if ($data === false) {
-            return self::update($key, $callback);
+            return $this->update($callback);
         }
 
-        $staleTime = get_transient($key . self::STALE_SUFFIX);
-        if ($staleTime >= time()) {
+        $staleAt = get_transient($this->key . self::STALE_SUFFIX);
+        if ($staleAt >= time()) {
             return $data;
         }
 
-        return self::handleStaleCache($key, $data, $callback);
+        return $this->handleStaleCache($data, $callback);
     }
 
-    private static function handleStaleCache(string $key, mixed $data, callable $callback): mixed
+    private function handleStaleCache(mixed $data, callable $callback): mixed
     {
-        $lockKey = $key . self::LOCK_SUFFIX;
+        $lockKey = $this->key . self::LOCK_SUFFIX;
 
         if (!get_transient($lockKey)) {
-            set_transient($lockKey, true, static::$lockDuration);
-            self::scheduleRefresh($key, $callback, $lockKey);
+            set_transient($lockKey, true, $this->lockDuration);
+            $this->scheduleRefresh($callback, $lockKey);
         }
 
         return $data;
     }
 
-    private static function scheduleRefresh(string $key, callable $callback, string $lockKey): void
+    private function scheduleRefresh(callable $callback, string $lockKey): void
     {
-        add_action('shutdown', function () use ($key, $callback, $lockKey) {
+        add_action('shutdown', function () use ($callback, $lockKey): void {
             if (function_exists('fastcgi_finish_request')) {
                 fastcgi_finish_request();
             }
 
-            self::update($key, $callback);
+            $this->update($callback);
             delete_transient($lockKey);
         });
     }
 
-    private static function update(string $key, callable $callback): mixed
+    private function update(callable $callback): mixed
     {
         try {
             $data = $callback();
 
-            if (!$data) {
+            if ($data === false) {
                 return false;
             }
 
-            set_transient($key, $data, static::$cacheDuration);
+            set_transient($this->key, $data, $this->cacheDuration);
             set_transient(
-                $key . self::STALE_SUFFIX,
-                time() + static::$staleTime,
-                static::$cacheDuration
+                $this->key . self::STALE_SUFFIX,
+                time() + $this->staleTime,
+                $this->cacheDuration
             );
 
             return $data;
         } catch (\Throwable $e) {
-            error_log("StaleCache update failed for key {$key}: " . $e->getMessage());
+            error_log("StaleCache update failed for key {$this->key}: " . $e->getMessage());
             return false;
         }
     }
