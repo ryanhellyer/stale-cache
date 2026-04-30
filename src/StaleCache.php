@@ -28,7 +28,7 @@ class StaleCache
     public function __construct(string $key, array $times, CacheStore $store)
     {
         $this->store = $store;
-        $times = array_map('absint', $times);
+        $times = array_map('abs', $times);
         $settings = $times + [2 => HOUR_IN_SECONDS];
         [$this->staleTime, $this->cacheDuration, $this->lockDuration] = $settings;
         $this->key = $key;
