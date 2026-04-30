@@ -32,7 +32,7 @@
         "test": "./vendor/bin/phpunit",
         "phpcs": "./vendor/bin/phpcs src tests --standard=PSR12",
         "phpcs-fix": "./vendor/bin/phpcbf src tests --standard=PSR12",
-        "phpstan": "./vendor/bin/phpstan analyse src tests --level=8"
+        "phpstan": "./vendor/bin/phpstan"
     },
     "minimum-stability": "stable"
 }
