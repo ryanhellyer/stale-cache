@@ -8,6 +8,7 @@ class StaleCache
 {
     private const LOCK_SUFFIX = '_refresh_lock';
     private const STALE_SUFFIX = '_stale_time';
+    private const DEFAULT_LOCK_DURATION = 3600;
     private string $key;
     private int $staleTime;
     private int $cacheDuration;
@@ -36,7 +37,7 @@ class StaleCache
         $this->store = $store;
         $this->hooks = $hooks ?? new WordPressHookManager();
         $times = array_map('abs', $times);
-        $settings = $times + [2 => HOUR_IN_SECONDS];
+        $settings = $times + [2 => self::DEFAULT_LOCK_DURATION];
         [$this->staleTime, $this->cacheDuration, $this->lockDuration] = $settings;
         $this->key = $key;
     }
