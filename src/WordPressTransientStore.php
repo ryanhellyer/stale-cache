@@ -8,7 +8,8 @@ class WordPressTransientStore implements CacheStore
 {
     public function get(string $key): mixed
     {
-        return get_transient($key); // @phpstan-ignore-line
+        $value = get_transient($key); // @phpstan-ignore-line
+        return $value === false ? null : $value;
     }
 
     public function set(string $key, mixed $value, int $ttl): bool

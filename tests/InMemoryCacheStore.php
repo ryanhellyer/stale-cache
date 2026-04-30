@@ -13,7 +13,7 @@ class InMemoryCacheStore implements CacheStore
 
     public function get(string $key): mixed
     {
-        return $this->storage[$key] ?? false;
+        return $this->storage[$key] ?? null;
     }
 
     public function set(string $key, mixed $value, int $ttl): bool

@@ -122,14 +122,15 @@ class StaleCacheTest extends TestCase
         $this->assertSame('', $this->store->get(self::TEST_KEY));
     }
 
-    public function testCallbackReturningFalseIsNotCached(): void
+    public function testCallbackReturningFalseIsCached(): void
     {
         $result = $this->createCache([5, 10])->resolve(
             fn() => false
         );
 
         $this->assertFalse($result);
-        $this->assertArrayNotHasKey(self::TEST_KEY, $this->store->toArray());
+        $this->assertArrayHasKey(self::TEST_KEY, $this->store->toArray());
+        $this->assertFalse($this->store->get(self::TEST_KEY));
     }
 
     public function testCallbackExceptionReturnsFalse(): void

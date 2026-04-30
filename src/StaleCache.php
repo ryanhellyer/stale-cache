@@ -46,7 +46,7 @@ class StaleCache
     {
         $data = $this->store->get($this->key);
 
-        if ($data === false) {
+        if ($data === null) {
             return $this->update($callback);
         }
 
@@ -86,10 +86,6 @@ class StaleCache
     {
         try {
             $data = $callback();
-
-            if ($data === false) {
-                return false;
-            }
 
             $this->store->set($this->key, $data, $this->cacheDuration);
             $this->store->set(
