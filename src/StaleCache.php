@@ -44,18 +44,23 @@ class StaleCache
 
     public function resolve(callable $callback): mixed
     {
-        $data = $this->store->get($this->key);
+        try {
+            $data = $this->store->get($this->key);
 
-        if ($data === null) {
-            return $this->update($callback);
+            if ($data === null) {
+                return $this->update($callback);
+            }
+
+            $staleAt = $this->store->get($this->key . self::STALE_SUFFIX);
+            if ($staleAt >= time()) {
+                return $data;
+            }
+
+            return $this->handleStaleCache($data, $callback);
+        } catch (\Throwable $e) {
+            error_log("StaleCache resolve failed for key {$this->key}: " . $e->getMessage());
+            return false;
         }
-
-        $staleAt = $this->store->get($this->key . self::STALE_SUFFIX);
-        if ($staleAt >= time()) {
-            return $data;
-        }
-
-        return $this->handleStaleCache($data, $callback);
     }
 
     private function handleStaleCache(mixed $data, callable $callback): mixed
@@ -77,27 +82,27 @@ class StaleCache
                 fastcgi_finish_request();
             }
 
-            $this->update($callback);
+            try {
+                $this->update($callback);
+            } catch (\Throwable $e) {
+                error_log("StaleCache background refresh failed for key {$this->key}: " . $e->getMessage());
+            }
+
             $this->store->delete($lockKey);
         });
     }
 
     private function update(callable $callback): mixed
     {
-        try {
-            $data = $callback();
+        $data = $callback();
 
-            $this->store->set($this->key, $data, $this->cacheDuration);
-            $this->store->set(
-                $this->key . self::STALE_SUFFIX,
-                time() + $this->staleTime,
-                $this->cacheDuration
-            );
+        $this->store->set($this->key, $data, $this->cacheDuration);
+        $this->store->set(
+            $this->key . self::STALE_SUFFIX,
+            time() + $this->staleTime,
+            $this->cacheDuration
+        );
 
-            return $data;
-        } catch (\Throwable $e) {
-            error_log("StaleCache update failed for key {$this->key}: " . $e->getMessage());
-            return false;
-        }
+        return $data;
     }
 }
