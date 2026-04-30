@@ -22,3 +22,9 @@ Thumbs.db
 *.bak
 *.backup
 *~
+
+# Composer
+/vendor/
+
+# PHPUnit cache
+.phpunit.cache/
