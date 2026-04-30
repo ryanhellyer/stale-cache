@@ -8,6 +8,7 @@ use RyanHellyer\StaleCache\CacheStore;
 
 class InMemoryCacheStore implements CacheStore
 {
+    /** @var array<string, mixed> */
     private array $storage = [];
 
     public function get(string $key): mixed
@@ -27,6 +28,7 @@ class InMemoryCacheStore implements CacheStore
         return true;
     }
 
+    /** @return array<string, mixed> */
     public function toArray(): array
     {
         return $this->storage;

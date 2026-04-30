@@ -12,26 +12,18 @@ class StaleCacheTest extends TestCase
     private const TEST_KEY = 'test_key';
     private const TEST_DATA = 'test_data';
     private InMemoryCacheStore $store;
+    private InMemoryHookManager $hooks;
 
     protected function setUp(): void
     {
-        global $test;
-        $test = new \stdClass();
-        $test->actions = [];
         $this->store = new InMemoryCacheStore();
+        $this->hooks = new InMemoryHookManager();
     }
 
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-        global $test;
-        $test = null;
-        unset($this->store);
-    }
-
+    /** @param array<int> $times */
     private function createCache(array $times): StaleCache
     {
-        return new StaleCache(self::TEST_KEY, $times, $this->store);
+        return new StaleCache(self::TEST_KEY, $times, $this->store, $this->hooks);
     }
 
     public function testCacheMissCallsCallbackAndCachesResult(): void
@@ -73,7 +65,7 @@ class StaleCacheTest extends TestCase
         );
 
         $this->assertEquals(self::TEST_DATA, $result);
-        $this->assertEmpty($GLOBALS['test']->actions);
+        $this->assertEmpty($this->hooks->getShutdownCallbacks());
     }
 
     public function testStaleCacheWithoutLockTriggersBackgroundRefresh(): void
@@ -87,9 +79,9 @@ class StaleCacheTest extends TestCase
 
         $this->assertEquals(self::TEST_DATA, $result);
         $this->assertTrue($this->store->get(self::TEST_KEY . '_refresh_lock'));
-        $this->assertCount(1, $GLOBALS['test']->actions['shutdown']);
+        $this->assertCount(1, $this->hooks->getShutdownCallbacks());
 
-        ($GLOBALS['test']->actions['shutdown'][0])();
+        ($this->hooks->getShutdownCallbacks()[0])();
 
         $this->assertEquals('fresh_data', $this->store->get(self::TEST_KEY));
         $this->assertArrayNotHasKey(self::TEST_KEY . '_refresh_lock', $this->store->toArray());

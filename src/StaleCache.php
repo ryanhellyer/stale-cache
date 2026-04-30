@@ -13,21 +13,28 @@ class StaleCache
     private int $cacheDuration;
     private int $lockDuration;
     private CacheStore $store;
+    private HookManager $hooks;
 
     /**
      * @param array<int> $times
      */
     public static function get(string $key, array $times, callable $callback): mixed
     {
-        return (new self($key, $times, new WordPressTransientStore()))->resolve($callback);
+        return (new self(
+            $key,
+            $times,
+            new WordPressTransientStore(),
+            new WordPressHookManager(),
+        ))->resolve($callback);
     }
 
     /**
      * @param array<int> $times
      */
-    public function __construct(string $key, array $times, CacheStore $store)
+    public function __construct(string $key, array $times, CacheStore $store, ?HookManager $hooks = null)
     {
         $this->store = $store;
+        $this->hooks = $hooks ?? new WordPressHookManager();
         $times = array_map('abs', $times);
         $settings = $times + [2 => HOUR_IN_SECONDS];
         [$this->staleTime, $this->cacheDuration, $this->lockDuration] = $settings;
@@ -64,7 +71,7 @@ class StaleCache
 
     private function scheduleRefresh(callable $callback, string $lockKey): void
     {
-        add_action('shutdown', function () use ($callback, $lockKey): void {
+        $this->hooks->onShutdown(function () use ($callback, $lockKey): void {
             if (function_exists('fastcgi_finish_request')) {
                 fastcgi_finish_request();
             }
