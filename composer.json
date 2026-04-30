@@ -3,8 +3,7 @@
     "description": "A PHP implementation of the stale-while-revalidate caching pattern for WordPress",
     "type": "library",
     "require": {
-        "php": ">=8.2",
-        "ext-json": "*"
+        "php": ">=8.2"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.0",
