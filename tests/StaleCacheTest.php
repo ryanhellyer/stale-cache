@@ -11,49 +11,47 @@ class StaleCacheTest extends TestCase
 {
     private const TEST_KEY = 'test_key';
     private const TEST_DATA = 'test_data';
+    private InMemoryCacheStore $store;
 
     protected function setUp(): void
     {
         global $test;
         $test = new \stdClass();
-        $test->transients = [];
         $test->actions = [];
+        $this->store = new InMemoryCacheStore();
     }
 
     protected function tearDown(): void
     {
         parent::tearDown();
-
         global $test;
         $test = null;
+        unset($this->store);
+    }
+
+    private function createCache(array $times): StaleCache
+    {
+        return new StaleCache(self::TEST_KEY, $times, $this->store);
     }
 
     public function testCacheMissCallsCallbackAndCachesResult(): void
     {
-        global $test;
-
-        $result = StaleCache::get(
-            self::TEST_KEY,
-            [5, 10],
+        $result = $this->createCache([5, 10])->resolve(
             fn() => self::TEST_DATA
         );
 
         $this->assertEquals(self::TEST_DATA, $result);
-        $this->assertEquals(self::TEST_DATA, $test->transients[self::TEST_KEY]);
-        $this->assertGreaterThan(time(), $test->transients[self::TEST_KEY . '_stale_time']);
+        $this->assertEquals(self::TEST_DATA, $this->store->get(self::TEST_KEY));
+        $this->assertGreaterThan(time(), $this->store->get(self::TEST_KEY . '_stale_time'));
     }
 
     public function testFreshCacheReturnsDataWithoutCallingCallback(): void
     {
-        global $test;
-
-        $test->transients[self::TEST_KEY] = self::TEST_DATA;
-        $test->transients[self::TEST_KEY . '_stale_time'] = time() + 100;
+        $this->store->set(self::TEST_KEY, self::TEST_DATA, 0);
+        $this->store->set(self::TEST_KEY . '_stale_time', time() + 100, 0);
 
         $callbackCalled = false;
-        $result = StaleCache::get(
-            self::TEST_KEY,
-            [5, 10],
+        $result = $this->createCache([5, 10])->resolve(
             function () use (&$callbackCalled) {
                 $callbackCalled = true;
                 return 'should_not_be_called';
@@ -66,57 +64,45 @@ class StaleCacheTest extends TestCase
 
     public function testStaleCacheWithLockReturnsStaleDataWithoutRefresh(): void
     {
-        global $test;
+        $this->store->set(self::TEST_KEY, self::TEST_DATA, 0);
+        $this->store->set(self::TEST_KEY . '_stale_time', time() - 1, 0);
+        $this->store->set(self::TEST_KEY . '_refresh_lock', true, 0);
 
-        $test->transients[self::TEST_KEY] = self::TEST_DATA;
-        $test->transients[self::TEST_KEY . '_stale_time'] = time() - 1;
-        $test->transients[self::TEST_KEY . '_refresh_lock'] = true;
-
-        $result = StaleCache::get(
-            self::TEST_KEY,
-            [5, 10],
+        $result = $this->createCache([5, 10])->resolve(
             fn() => 'should_not_be_called'
         );
 
         $this->assertEquals(self::TEST_DATA, $result);
-        $this->assertEmpty($test->actions);
+        $this->assertEmpty($GLOBALS['test']->actions);
     }
 
     public function testStaleCacheWithoutLockTriggersBackgroundRefresh(): void
     {
-        global $test;
+        $this->store->set(self::TEST_KEY, self::TEST_DATA, 0);
+        $this->store->set(self::TEST_KEY . '_stale_time', time() - 1, 0);
 
-        $test->transients[self::TEST_KEY] = self::TEST_DATA;
-        $test->transients[self::TEST_KEY . '_stale_time'] = time() - 1;
-
-        $result = StaleCache::get(
-            self::TEST_KEY,
-            [5, 10, 60],
+        $result = $this->createCache([5, 10, 60])->resolve(
             fn() => 'fresh_data'
         );
 
         $this->assertEquals(self::TEST_DATA, $result);
-        $this->assertTrue($test->transients[self::TEST_KEY . '_refresh_lock']);
-        $this->assertCount(1, $test->actions['shutdown']);
+        $this->assertTrue($this->store->get(self::TEST_KEY . '_refresh_lock'));
+        $this->assertCount(1, $GLOBALS['test']->actions['shutdown']);
 
-        ($test->actions['shutdown'][0])();
+        ($GLOBALS['test']->actions['shutdown'][0])();
 
-        $this->assertEquals('fresh_data', $test->transients[self::TEST_KEY]);
-        $this->assertArrayNotHasKey(self::TEST_KEY . '_refresh_lock', $test->transients);
+        $this->assertEquals('fresh_data', $this->store->get(self::TEST_KEY));
+        $this->assertArrayNotHasKey(self::TEST_KEY . '_refresh_lock', $this->store->toArray());
     }
 
     public function testStaleCacheDoubleReturn(): void
     {
-        global $test;
-
-        $test->transients[self::TEST_KEY] = self::TEST_DATA;
-        $test->transients[self::TEST_KEY . '_stale_time'] = time() - 1;
-        $test->transients[self::TEST_KEY . '_refresh_lock'] = true;
+        $this->store->set(self::TEST_KEY, self::TEST_DATA, 0);
+        $this->store->set(self::TEST_KEY . '_stale_time', time() - 1, 0);
+        $this->store->set(self::TEST_KEY . '_refresh_lock', true, 0);
 
         for ($i = 0; $i < 2; $i++) {
-            $result = StaleCache::get(
-                self::TEST_KEY,
-                [5, 10],
+            $result = $this->createCache([5, 10])->resolve(
                 fn() => self::TEST_DATA
             );
 
@@ -126,57 +112,41 @@ class StaleCacheTest extends TestCase
 
     public function testCallbackReturningZeroIsCached(): void
     {
-        global $test;
-
-        $result = StaleCache::get(
-            self::TEST_KEY,
-            [5, 10],
+        $result = $this->createCache([5, 10])->resolve(
             fn() => 0
         );
 
         $this->assertSame(0, $result);
-        $this->assertSame(0, $test->transients[self::TEST_KEY]);
+        $this->assertSame(0, $this->store->get(self::TEST_KEY));
     }
 
     public function testCallbackReturningEmptyStringIsCached(): void
     {
-        global $test;
-
-        $result = StaleCache::get(
-            self::TEST_KEY,
-            [5, 10],
+        $result = $this->createCache([5, 10])->resolve(
             fn() => ''
         );
 
         $this->assertSame('', $result);
-        $this->assertSame('', $test->transients[self::TEST_KEY]);
+        $this->assertSame('', $this->store->get(self::TEST_KEY));
     }
 
     public function testCallbackReturningFalseIsNotCached(): void
     {
-        global $test;
-
-        $result = StaleCache::get(
-            self::TEST_KEY,
-            [5, 10],
+        $result = $this->createCache([5, 10])->resolve(
             fn() => false
         );
 
         $this->assertFalse($result);
-        $this->assertArrayNotHasKey(self::TEST_KEY, $test->transients);
+        $this->assertArrayNotHasKey(self::TEST_KEY, $this->store->toArray());
     }
 
     public function testCallbackExceptionReturnsFalse(): void
     {
-        global $test;
-
-        $result = StaleCache::get(
-            self::TEST_KEY,
-            [5, 10],
+        $result = $this->createCache([5, 10])->resolve(
             fn() => throw new \RuntimeException('test error')
         );
 
         $this->assertFalse($result);
-        $this->assertArrayNotHasKey(self::TEST_KEY, $test->transients);
+        $this->assertArrayNotHasKey(self::TEST_KEY, $this->store->toArray());
     }
 }

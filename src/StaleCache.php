@@ -34,7 +34,7 @@ class StaleCache
         $this->key = $key;
     }
 
-    private function resolve(callable $callback): mixed
+    public function resolve(callable $callback): mixed
     {
         $data = $this->store->get($this->key);
 
