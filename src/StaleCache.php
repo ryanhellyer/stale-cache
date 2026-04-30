@@ -12,20 +12,22 @@ class StaleCache
     private int $staleTime;
     private int $cacheDuration;
     private int $lockDuration;
+    private CacheStore $store;
 
     /**
      * @param array<int> $times
      */
     public static function get(string $key, array $times, callable $callback): mixed
     {
-        return (new self($key, $times))->resolve($callback);
+        return (new self($key, $times, new WordPressTransientStore()))->resolve($callback);
     }
 
     /**
      * @param array<int> $times
      */
-    private function __construct(string $key, array $times)
+    public function __construct(string $key, array $times, CacheStore $store)
     {
+        $this->store = $store;
         $times = array_map('absint', $times);
         $settings = $times + [2 => HOUR_IN_SECONDS];
         [$this->staleTime, $this->cacheDuration, $this->lockDuration] = $settings;
@@ -34,13 +36,13 @@ class StaleCache
 
     private function resolve(callable $callback): mixed
     {
-        $data = get_transient($this->key);
+        $data = $this->store->get($this->key);
 
         if ($data === false) {
             return $this->update($callback);
         }
 
-        $staleAt = get_transient($this->key . self::STALE_SUFFIX);
+        $staleAt = $this->store->get($this->key . self::STALE_SUFFIX);
         if ($staleAt >= time()) {
             return $data;
         }
@@ -52,8 +54,8 @@ class StaleCache
     {
         $lockKey = $this->key . self::LOCK_SUFFIX;
 
-        if (!get_transient($lockKey)) {
-            set_transient($lockKey, true, $this->lockDuration);
+        if (!$this->store->get($lockKey)) {
+            $this->store->set($lockKey, true, $this->lockDuration);
             $this->scheduleRefresh($callback, $lockKey);
         }
 
@@ -68,7 +70,7 @@ class StaleCache
             }
 
             $this->update($callback);
-            delete_transient($lockKey);
+            $this->store->delete($lockKey);
         });
     }
 
@@ -81,8 +83,8 @@ class StaleCache
                 return false;
             }
 
-            set_transient($this->key, $data, $this->cacheDuration);
-            set_transient(
+            $this->store->set($this->key, $data, $this->cacheDuration);
+            $this->store->set(
                 $this->key . self::STALE_SUFFIX,
                 time() + $this->staleTime,
                 $this->cacheDuration
